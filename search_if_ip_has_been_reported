@@ -1,0 +1,122 @@
+#!/bin/bash
+#author: Jacob Schofield
+
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+	echo ""
+        echo "This can be run either through passing an IP to the script like this:"
+	echo ""
+	echo "-- search_if_ip_has_been_reported 8.8.8.8"
+	echo ""
+	echo "or via in script prompt by simply calling the script as such:"
+	echo ""
+	echo "-- search_if_ip_has_been_reported"
+	echo ""
+	echo "This will then look through ips reported by feodotracker and by ipsum"
+	echo "and print the results to the screen."
+
+        exit;
+fi
+
+#data pull
+osint_repo="https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt"
+osint_data="$(curl -s "$osint_repo" | grep -v "#" | tr "\t" "," | tr -d " ")"
+abuse_repo="https://feodotracker.abuse.ch/downloads/ipblocklist.csv"
+abuse_data="$(curl -s "$abuse_repo" | awk -F "," '{print $2 "," $5}')"
+display_control="0"
+osint_data_display_line="0"
+abuse_data_display_line="0"
+
+#function
+add_line ()
+{
+	outp+="$1\n"
+}
+
+#variable pass detection
+
+if [[ -z $1 ]]; 
+then
+
+	printf "Enter IP: "
+        read  grep_input
+
+else
+
+	grep_input=$1
+
+fi
+
+osint_data_return="$(echo -e "$osint_data" | grep "$grep_input")"
+osint_data_display_var="$(echo "$osint_data_return" | wc -c)"
+
+if (( $osint_data_display_var != "1" ))
+then
+
+	osint_data_display_line="$(echo "$osint_data_return" | wc -l)"
+
+fi
+
+abuse_data_return="$(/bin/echo -e "$abuse_data" | grep "$grep_input")"
+abuse_data_display_var="$(/bin/echo "$abuse_data_return" | wc -c)"
+
+if (( $abuse_data_display_var != "1" ))
+then
+
+	abuse_data_display_line="$(/bin/echo "$abuse_data_return" | wc -l)"
+fi
+
+if [ $osint_data_display_var != "1" ] || [ $abuse_data_display_var != "1" ]
+then
+
+	display_control="1"
+
+	add_line " "
+
+	if [ $osint_data_display_line == "1" ] || [ $abuse_data_display_line == "1" ]
+	then
+		osint_asn_data="$(curl -s "https://api.bgpview.io/ip/$grep_input" | tr -d '{}[]$<>$*"' | tr "," "\\n")"
+	        direct_netflow_asn="$(echo "$osint_asn_data" | grep -i "asn" | head -1 | awk -F ":" '{print $3}' | tr -d " ")"
+	        direct_netflow_asn_name="$(echo "$osint_asn_data" | grep -i "name" | head -1 | awk -F ":" '{print $2}')"
+	        direct_netflow_country="$(echo "$osint_asn_data" | grep -i "country" | head -1 | awk -F ":" '{print $2}')"
+
+	        add_line "$(echo "IP: "$grep_input" | ASN_number:$direct_netflow_asn | ASN_name:$direct_netflow_asn_name | Country=$direct_netflow_country ")"
+		add_line " "
+	
+	fi
+	
+	if (( $osint_data_display_var != "1" ))
+	then
+
+		add_line "Detected on IPsum list:"
+		add_line "$(echo "$osint_data_return" | awk -F "," '{print "IP: " $1 "  Count: " $2 ""  }')"
+		add_line " "
+
+	fi
+
+	if (( $abuse_data_display_var != "1" ))
+	then
+
+                add_line "Detected on Abuse list:"
+                add_line "$(echo "$abuse_data_return" | awk -F "," '{print "IP: " $1 "  Variant: " $2}')"
+		add_line " "
+
+	fi
+
+fi
+
+
+#display logic based on CHAR in string
+if (( $display_control  == "0" ))
+then
+
+	echo -e "\n\n"
+	echo -e "\t No match discovered"
+	echo -e "\n\n"
+
+elif (( $display_control == "1" ))
+then
+
+	/bin/echo -e "$outp" 
+fi

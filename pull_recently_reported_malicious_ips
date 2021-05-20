@@ -1,0 +1,40 @@
+#!/bin/bash
+#author: Jacob Schofield
+
+#this tool pulls down a list of osint IPS
+
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+	echo ""
+        echo "This will pull a list of recently reported ips from ipsum.txt"
+	echo "and from feodotracker. This will write out the results of the"
+	echo "pull to ~/intel/abuse for feodotracker ips and ~/intel/ipsum"
+	echo "for ipsum ips."
+	echo ""
+
+        exit;
+fi
+
+abuse="https://feodotracker.abuse.ch/downloads/ipblocklist.csv"
+ipsum="https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt"
+dater="$(/bin/date -I)"
+
+
+/bin/mkdir -p ~/intel/abuse
+/bin/chmod 0700 ~/intel/abuse
+/bin/mkdir -p ~/intel/ipsum
+/bin/chmod 0700 ~/intel/ipsum
+
+ipsum_pull=$(/usr/bin/curl -s "$ipsum" | /bin/grep -v "#" ) 
+abuse_pull=$(/usr/bin/curl -s "$abuse" | /bin/grep -v "#" )
+
+ipsum_top="$(echo "$ipsum_pull" | /usr/bin/head -10 )"
+abuse_top="$(echo "$abuse_pull" | /usr/bin/head -10 )"
+
+top_twenty="${ipsum_top}\n${abuse_top}"
+
+echo "$top_twenty"
+
+echo "$abuse_pull" > ~/intel/abuse/"$dater".txt
+echo "$ipsum_pull" > ~/intel/ipsum/"$dater".txt

@@ -1,0 +1,94 @@
+#!/bin/bash
+#Author: Jacob Schofield
+
+#This script will take two files and will go line by line and look for similarities in a second file.
+
+#This section handles text colouring
+red_text=`/usr/bin/tput setaf 1`
+green_text=`tput setaf 2`
+green_back="$(tput setab 4)"
+yellow_text=`tput setaf 3`
+reset=`tput sgr0`
+
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+        echo ""
+	echo "This will promprt for two file paths. it will then compare the two files"
+	echo "line by line and look for similarities and differences. This will then"
+	echo "generate a results file at ~/results/\"whever the path of the first file is\"."
+
+        exit;
+fi
+
+clear
+
+ls -l
+
+mkdir -p ~/results/file_compare
+chmod 0700 ~/results/file_compare
+
+first_file_path=""
+first_file=""
+
+second_file_path=""
+second_file=""
+
+final_comparision=""
+file_date="$(date -I)"
+
+echo -ne "Enter first file path: ${red_text}"
+read first_file_path
+
+echo -ne "${reset}Enter second file path: ${red_text}"
+read second_file_path
+
+first_file="$(cat "$first_file_path")"
+second_file="$(cat "$second_file_path")"
+
+echo "${reset}"
+
+for a in ${first_file[@]}
+do
+
+	final_comparision_buff="$( echo "$second_file" | grep "$a" )"
+	final_comparision_int="$(echo "$final_comparision_buff" | wc -c)"
+
+	final_comparision_sim_buff="$( echo "$second_file" | grep -i "$a" )"
+	final_comparision_sim_int="$(echo "$final_comparision_sim_buff" | wc -c)"
+
+	if (( $final_comparision_int != "1" ))
+	then
+		final_comparision+="$a \n"
+		echo -ne "${green_text} $a Exact ${reset}                                                                  \r"
+
+	elif (( $final_comparision_int == "1" ))
+	then
+
+		final_comparision_diff+="$a \n"
+		echo -ne "${red_text} $a Not found                ${reset}                                              \r"
+
+	fi
+
+        if (( $final_comparision_sim_int != "1" ))
+        then
+
+                final_comparision_sim+="$a \n"
+		echo -ne " ${yellow_text}$a Similar                  ${reset}                                             \r"
+
+        fi
+
+
+	unset final_comparision_int
+	unset final_comparision_buff
+	unset final_comparision_sim_int
+        unset final_comparision_sim_buff
+
+done
+
+echo -e "-----------------------------------------------\nExact Match\n-----------------------------------------------\n" > ~/results/file_compare/Compared_"$file_date".txt
+echo -e "$final_comparision" >> ~/results/file_compare/Compared_"$file_date".txt
+echo -e "\n\n-----------------------------------------------\nsimilar\n-----------------------------------------------\n" >> ~/results/file_compare/Compared_"$file_date".txt
+echo -e "$final_comparision_sim"  >> ~/results/file_compare/Compared_"$file_date".txt
+echo -e "\n\n-----------------------------------------------\nItems in file One that are not in file two:\n-----------------------------------------------\n" >> ~/results/file_compare/Compared_"$file_date".txt
+echo -e "$final_comparision_diff" >> ~/results/file_compare/Compared_"$file_date".txt

@@ -1,0 +1,95 @@
+#!/bin/bash
+#author: Jacob Schofield
+
+#this tool pulls down a list of osint IPS
+
+#defined variables
+red_text=`/usr/bin/tput setaf 1`
+reset=`/usr/bin/tput sgr0`
+abuse="https://feodotracker.abuse.ch/downloads/ipblocklist.csv"
+ipsum="https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt"
+dater="$(/bin/date -I)"
+file_name=""
+file_data=""
+
+#functions
+add_line()
+{
+
+	output+="$1\n"
+
+}
+
+#help display function
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]]
+then
+
+	/bin/echo "This program will prompt for a file name. You must be in the same working directory of this file to corectly run."
+	/bin/echo "The original file must be in either a txt or csv format. Farrow can be ran one of two ways:"
+	/bin/echo ""
+	/bin/echo " farrow             ---- simply running the program without any paramaters will then prompt you for the file name"
+	/bin/echo " farrow file_name   ---- Alternativly farrow can have a file name passed to it when running"
+	/bin/echo ""
+	/bin/echo "This will display the final resultes and also generate a file of the detected IP's"
+
+	exit
+fi
+
+#program body
+if [[ -z $1 ]]
+then
+
+	/bin/echo -ne "Enter file name: "
+	read file_name
+
+else
+
+	file_name=$1
+
+fi
+
+file_data="$(/bin/cat "$file_name")"
+
+/bin/echo "Gathering recently reported malicious IP's"
+
+ipsum_pull=$(/usr/bin/curl -s "$ipsum" | /bin/grep -v "#" | /usr/bin/awk -F " " '{print $1}'| /usr/bin/head -150) 
+abuse_pull=$(/usr/bin/curl -s "$abuse" | /bin/grep -v "#" | /usr/bin/awk -F "," '{print $2}' | /usr/bin/head -100)
+
+combined_pull="${ipsum_pull}\n${abuse_pull}"
+
+add_line "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+add_line "+"
+add_line "+                                     File checked: $file_name"
+add_line "+                                     Date: $dater"
+add_line "+"
+add_line "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+add_line "Suspicious IP's:"
+
+
+#for loop checking for IP information
+
+for ip in ${combined_pull[@]}
+do
+
+	/bin/echo -ne "Checking for ${red_text}$ip"
+	ip_var="$(/bin/echo "$file_data" | grep "$ip" | wc -c)"
+	
+	if (( ip_var >= "1" ))
+	then
+
+		/bin/echo " Detected"
+
+		add_line "$ip"
+
+	fi
+
+	/bin/echo -ne "\r${reset}"
+
+	unset ip_var
+
+done
+
+clear
+
+/bin/echo -e "$output"
+/bin/echo -e "$output" > analyzed.$file_name

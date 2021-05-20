@@ -1,0 +1,39 @@
+#!/bin/bash
+#author:Jacob Schofield
+
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+	echo ""
+        echo "This script will prompt you for a file path. it will then"
+	echo "go through each line of the file and sort them by char length."
+	echo "the results are then written to ~/results/\"file name entered\".sorted"
+	echo ""
+
+        exit;
+fi
+
+mkdir -p ~/results
+chmod 0700 ~/results
+
+clear
+ls -al
+
+echo "Enter file:"
+read raw_file
+
+file_enter="$(cat "$raw_file")"
+
+for line in ${file_enter[@]}
+do
+
+	char_length="$(echo "$line" | wc -c )"
+	
+	outp+="$char_length,$line \n"
+
+	unset char_length
+
+
+done
+
+echo -e "$outp" | sort -rn > ~/results/"$raw_file".sorted

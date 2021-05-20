@@ -1,0 +1,67 @@
+#!/bin/bash
+#author: Jacob Schofield
+
+#This script will ingest a file of IP's and enruch the data through an API call to bgpview
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+        echo ""
+	echo "This will prompt you for a file path to ingest. it will then iterate"
+	echo "through this file and look up high level information about the ips."
+	echo "The file should be formated as such:"
+	echo ""
+	echo "185.22.234.234"
+	echo "185.134.22.22"
+	echo "ect."
+	echo ""
+	echo "the results are printed to ~/"
+
+        exit;
+fi
+
+mkdir -p ~/results/ip_information_search.results
+chmod 0700 ~/intel/daily
+
+clear
+ls -al
+
+echo "Enter file path:"
+read file_path
+
+imported_ips="$(cat "$file_path")"
+dater="$(date -I)"
+
+add_line()
+{
+
+	outp+="$1\n"
+
+}
+
+add_line "Date: $dater"
+add_line "File Name: $file_path"
+add_line " "
+
+for remote_ip in ${imported_ips[@]}
+do
+        osint_asn_data="$(curl -s "https://api.bgpview.io/ip/$remote_ip" | tr -d '{}[]$<>$*"' | tr "," "\\n")"
+
+        direct_netflow_asn="$(echo "$osint_asn_data" | grep -i "asn" | head -1 | awk -F ":" '{print $3}' | tr -d " ")"
+        direct_netflow_asn_name="$(echo "$osint_asn_data" | grep -i "name" | head -1 | awk -F ":" '{print $2}')"
+        direct_netflow_country="$(echo "$osint_asn_data" | grep -i "country" | head -1 | awk -F ":" '{print $2}')"
+
+	echo "IP:$remote_ip,ASN_number:$direct_netflow_asn,ASN_name:$direct_netflow_asn_name,Country=$direct_netflow_country"
+
+	add_line "$(echo "| IP:$remote_ip ,| ASN_number:$direct_netflow_asn ,| ASN_name:$direct_netflow_asn_name ,|  Country=$direct_netflow_country ,|")"
+
+	unset osint_asn_data
+	unset direct_netflow_asn
+	unset direct_netflow_asn_name
+	unset direct_netflow_country
+
+done
+
+add_line " "
+
+echo -e "$outp" | column -s "," -t >> ~/results/ip_information_search.results
+echo -e "$outp" | column -s "," -t > ~/results/ip_information_search_"$dater".results

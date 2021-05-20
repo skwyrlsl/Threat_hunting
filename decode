@@ -1,0 +1,23 @@
+#!/bin/bash
+#author: Jacob Schofield
+
+#this tool will deocde a base64 string that is passed to it
+
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+	echo ""
+	echo "This will decode a base64 string that is passed to it."
+	echo ""
+	echo "--EXAMPLE: decode aGVsbG8gd29ybGQhCg=="
+	echo ""
+	echo "           hello world!"
+	echo ""
+	exit;
+fi
+
+string_data=$1
+
+decoded_string="$(echo "$string_data" | base64 --decode)"
+
+echo -e "$decoded_string"

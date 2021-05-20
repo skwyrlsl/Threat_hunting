@@ -1,0 +1,28 @@
+#!/bin/bash
+#author: Jacob Schofield
+
+#this tool will encode a string in base64
+
+if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+	if [[ $1 == "-h" ]] || [[ $1 == "-H" ]] || [[ $1 == "--help" ]] || [[ $1 == "--HELP" ]]
+then
+
+        echo ""
+        echo "This will base64 encode a string that is passed to it."
+        echo ""
+        echo "--EXAMPLE: encode \"hellow world!\""
+        echo ""
+        echo "           aGVsbG8gd29ybGQhCg=="
+        echo ""
+        exit;
+fi
+
+fi
+
+string_data=$1
+
+decoded_string="$(/bin/echo "$string_data" | /usr/bin/base64)"
+
+/bin/echo -e "$decoded_string"
